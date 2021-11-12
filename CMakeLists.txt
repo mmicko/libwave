@@ -3,6 +3,9 @@ project(libwave LANGUAGES CXX C)
 
 include_directories(. ./liblzma/)
 
+add_executable(vcd2fst vcd2fst.c ./fst/lz4.c ./fst/lz4.h ./fst/fastlz.c ./fst/fastlz.h ./fst/fstapi.c ./fst/fstapi.h ./jrb/jrb.h ./jrb/jrb.c)
+target_link_libraries(vcd2fst z)
+
 add_executable(fst2vcd fst2vcd.c ./fst/lz4.c ./fst/lz4.h ./fst/fastlz.c ./fst/fastlz.h ./fst/fstapi.c ./fst/fstapi.h)
 target_link_libraries(fst2vcd z)
 
@@ -29,3 +32,5 @@ target_link_libraries(vztminer z bz2 pthread)
 
 add_executable(lxt2miner lxt2miner.c lxt2_read.c lxt2_read.h)
 target_link_libraries(lxt2miner z)
+
+add_executable(evcd2vcd evcd2vcd.c ./jrb/jrb.h ./jrb/jrb.c)

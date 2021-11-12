@@ -27,7 +27,7 @@
 #endif
 
 #include "fst/fstapi.h"
-#include "../../contrib/rtlbrowse/jrb.h"
+#include "jrb/jrb.h"
 #include "wave_locale.h"
 
 #ifdef EXTLOAD_SUFFIX

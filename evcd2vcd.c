@@ -26,7 +26,7 @@
 #include <getopt.h>
 #endif
 
-#include "../../contrib/rtlbrowse/jrb.h"
+#include "jrb/jrb.h"
 #include "wave_locale.h"
 #include <stdio.h>
 #include <stdlib.h>
