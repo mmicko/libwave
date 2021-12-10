@@ -1,5 +1,5 @@
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
-   */
+ */
 #define HAVE_ALLOCA_H 1
 
 /* Define to 1 if you have the <fcntl.h> header file. */

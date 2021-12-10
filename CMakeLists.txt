@@ -34,3 +34,13 @@ add_executable(lxt2miner lxt2miner.c lxt2_read.c lxt2_read.h)
 target_link_libraries(lxt2miner z)
 
 add_executable(evcd2vcd evcd2vcd.c ./jrb/jrb.h ./jrb/jrb.c)
+
+file(GLOB_RECURSE CLANGFORMAT_FILES *.cpp *.h *.c)
+
+add_custom_target(
+    clangformat
+    COMMAND clang-format
+    -style=file
+    -i
+    ${CLANGFORMAT_FILES}
+)

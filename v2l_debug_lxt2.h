@@ -32,11 +32,10 @@
 
 struct memchunk
 {
-struct memchunk *next;
-void *ptr;
-size_t size;
+    struct memchunk *next;
+    void *ptr;
+    size_t size;
 };
-
 
 /*
  * If you have problems viewing traces (mangled timevalues),
@@ -48,8 +47,8 @@ size_t size;
 #define guint64 uint64_t
 
 #ifdef G_HAVE_GINT64
-typedef gint64          TimeType;
-typedef guint64         UTimeType;
+typedef gint64 TimeType;
+typedef guint64 UTimeType;
 
 #ifndef _MSC_VER
 #define LLDescriptor(x) x##LL
@@ -70,14 +69,13 @@ typedef guint64         UTimeType;
 #endif
 
 #else
-typedef long            TimeType;
-typedef unsigned long   UTimeType;
+typedef long TimeType;
+typedef unsigned long UTimeType;
 
 #define TTFormat "%d"
 #define LLDescriptor(x) x
 #define ULLDescriptor(x) x
 #endif
-
 
 #ifdef DEBUG_PRINTF
 #define DEBUG(x) x
@@ -98,4 +96,3 @@ void free_2(void *ptr);
 
 TimeType atoi_64(char *str);
 #endif
-

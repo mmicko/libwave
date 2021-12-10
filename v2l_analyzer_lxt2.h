@@ -47,98 +47,88 @@
 #include <unistd.h>
 #endif
 
-
 #define SYMPRIME 500009
-#define WAVE_DECOMPRESSOR "gzip -cd "	/* zcat alone doesn't cut it for AIX */
+#define WAVE_DECOMPRESSOR "gzip -cd " /* zcat alone doesn't cut it for AIX */
 
-
-typedef struct Node	 *nptr;
-typedef struct HistEnt	 *hptr;
-
+typedef struct Node *nptr;
+typedef struct HistEnt *hptr;
 
 typedef struct HistEnt
 {
-hptr next;	      /* next transition in history */
-TimeType time;        /* time of transition */
-TimeType previous_width; /* to avoid thrashing */
+    hptr next;               /* next transition in history */
+    TimeType time;           /* time of transition */
+    TimeType previous_width; /* to avoid thrashing */
 
-union
-  {
-  unsigned char val;    /* value: "0XU1"[val] */
-  char *vector;		/* pointer to a whole vector */
-  } v;
+    union
+    {
+        unsigned char val; /* value: "0XU1"[val] */
+        char *vector;      /* pointer to a whole vector */
+    } v;
 
 } HistEnt;
 
-
 typedef struct ExtNode
-  {
-  int msi, lsi;
-  } ExtNode;
+{
+    int msi, lsi;
+} ExtNode;
 
 struct Node
-  {
-    char     *nname;	/* ascii name of node */
-    ExtNode  *ext;	/* extension to node for vectors */
-    HistEnt  head;	/* first entry in transition history */
-    hptr     curr;      /* ptr. to current history entry */
+{
+    char *nname;  /* ascii name of node */
+    ExtNode *ext; /* extension to node for vectors */
+    HistEnt head; /* first entry in transition history */
+    hptr curr;    /* ptr. to current history entry */
 
-    hptr     *harray;   /* fill this in when we make a trace.. contains  */
-			/*  a ptr to an array of histents for bsearching */
-    int      numhist;	/* number of elements in the harray */
-    char     notdead;	/* indicates if this node gets a non-x value */
-    int      numtrans;  /* number of transitions */
+    hptr *harray; /* fill this in when we make a trace.. contains  */
+                  /*  a ptr to an array of histents for bsearching */
+    int numhist;  /* number of elements in the harray */
+    char notdead; /* indicates if this node gets a non-x value */
+    int numtrans; /* number of transitions */
 
-    struct Node *substnode;  /* pointer to substitutions on buses */
-    struct Node *substhead;  /* pointer to substitution head (originator) on buses */
-  };
-
+    struct Node *substnode; /* pointer to substitutions on buses */
+    struct Node *substhead; /* pointer to substitution head (originator) on buses */
+};
 
 struct symbol
 {
-struct symbol *nextinaet;/* for aet node chaining */
-struct HistEnt *h;	 /* points to previous one */
+    struct symbol *nextinaet; /* for aet node chaining */
+    struct HistEnt *h;        /* points to previous one */
 
-struct symbol *next;	/* for hash chain */
-char *name;
-char selected;		/* for the clist object */
+    struct symbol *next; /* for hash chain */
+    char *name;
+    char selected; /* for the clist object */
 
-struct Node *n;
-
+    struct Node *n;
 };
-
 
 struct slist
 {
-struct slist *next;
-char *str;
-int len;
+    struct slist *next;
+    char *str;
+    int len;
 };
-
 
 struct vcdsymbol
 {
-struct vcdsymbol *next;
-void *ltsym;
-char *name;
-char *id;
-char *value;
-struct queuedevent *ev; /* only if vartype==V_EVENT */
-struct Node **narray;
-unsigned int nid;
-int msi, lsi;
-int size;
-unsigned char vartype;
+    struct vcdsymbol *next;
+    void *ltsym;
+    char *name;
+    char *id;
+    char *value;
+    struct queuedevent *ev; /* only if vartype==V_EVENT */
+    struct Node **narray;
+    unsigned int nid;
+    int msi, lsi;
+    int size;
+    unsigned char vartype;
 };
-
 
 struct queuedevent
 {
-struct queuedevent *next;
-struct vcdsymbol *sym;
-TimeType last_event_time;    /* make +1 == 0 if there's not an event there too */
+    struct queuedevent *next;
+    struct vcdsymbol *sym;
+    TimeType last_event_time; /* make +1 == 0 if there's not an event there too */
 };
-
 
 struct symbol *symfind(char *);
 struct symbol *symadd(char *, int);
@@ -150,4 +140,3 @@ TimeType vcd_main(char *fname, char *lxname);
 void append_vcd_slisthier(char *str);
 
 #endif
-

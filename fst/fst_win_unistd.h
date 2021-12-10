@@ -49,4 +49,4 @@
 
 #include "stdint.h"
 
-#endif //WIN_UNISTD_H
+#endif // WIN_UNISTD_H

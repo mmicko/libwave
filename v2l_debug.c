@@ -27,127 +27,107 @@
 #include <config.h>
 #include "v2l_debug.h"
 
+#ifdef DEBUG_MALLOC /* normally this should be undefined..this is *only* for finding stray allocations/frees */
+static struct memchunk *mem = NULL;
+static size_t mem_total = 0;
+static int mem_chunks = 0;
 
-#ifdef DEBUG_MALLOC	/* normally this should be undefined..this is *only* for finding stray allocations/frees */
-	static struct memchunk *mem=NULL;
-	static size_t mem_total=0;
-	static int mem_chunks=0;
+static void mem_addnode(void *ptr, size_t size)
+{
+    struct memchunk *m;
 
-	static void mem_addnode(void *ptr, size_t size)
-	{
-	struct memchunk *m;
+    m = (struct memchunk *)malloc(sizeof(struct memchunk));
+    m->ptr = ptr;
+    m->size = size;
+    m->next = mem;
 
-	m=(struct memchunk *)malloc(sizeof(struct memchunk));
-	m->ptr=ptr;
-	m->size=size;
-	m->next=mem;
+    mem = m;
+    mem_total += size;
+    mem_chunks++;
 
-	mem=m;
-	mem_total+=size;
-	mem_chunks++;
+    fprintf(stderr, "mem_addnode:  TC:%05d TOT:%010d PNT:%010p LEN:+%d\n", mem_chunks, mem_total, ptr, size);
+}
 
-	fprintf(stderr,"mem_addnode:  TC:%05d TOT:%010d PNT:%010p LEN:+%d\n",mem_chunks,mem_total,ptr,size);
-	}
+static void mem_freenode(void *ptr)
+{
+    struct memchunk *m, *mprev = NULL;
+    m = mem;
 
-	static void mem_freenode(void *ptr)
-	{
-	struct memchunk *m, *mprev=NULL;
-	m=mem;
+    while (m) {
+        if (m->ptr == ptr) {
+            if (mprev) {
+                mprev->next = m->next;
+            } else {
+                mem = m->next;
+            }
 
-	while(m)
-		{
-		if(m->ptr==ptr)
-			{
-			if(mprev)
-				{
-				mprev->next=m->next;
-				}
-				else
-				{
-				mem=m->next;
-				}
+            mem_total = mem_total - m->size;
+            mem_chunks--;
+            fprintf(stderr, "mem_freenode: TC:%05d TOT:%010d PNT:%010p LEN:-%d\n", mem_chunks, mem_total, ptr, m->size);
+            free(m);
+            return;
+        }
+        mprev = m;
+        m = m->next;
+    }
 
-			mem_total=mem_total-m->size;
-			mem_chunks--;
-			fprintf(stderr,"mem_freenode: TC:%05d TOT:%010d PNT:%010p LEN:-%d\n",mem_chunks,mem_total,ptr,m->size);
-			free(m);
-			return;
-			}
-		mprev=m;
-		m=m->next;
-		}
-
-	fprintf(stderr,"mem_freenode: PNT:%010p *INVALID*\n",ptr);
-	sleep(1);
-	}
+    fprintf(stderr, "mem_freenode: PNT:%010p *INVALID*\n", ptr);
+    sleep(1);
+}
 #endif
-
 
 /*
  * wrapped malloc family...
  */
 void *malloc_2(size_t size)
 {
-void *ret;
-ret=malloc(size);
-if(ret)
-	{
-	DEBUG_M(mem_addnode(ret,size));
-	return(ret);
-	}
-	else
-	{
-	fprintf(stderr, "FATAL ERROR : Out of memory, sorry.\n");
-	exit(1);
-	}
+    void *ret;
+    ret = malloc(size);
+    if (ret) {
+        DEBUG_M(mem_addnode(ret, size));
+        return (ret);
+    } else {
+        fprintf(stderr, "FATAL ERROR : Out of memory, sorry.\n");
+        exit(1);
+    }
 }
 
 void *realloc_2(void *ptr, size_t size)
 {
-void *ret;
-ret=realloc(ptr, size);
-if(ret)
-	{
-	DEBUG_M(mem_freenode(ptr));
-	DEBUG_M(mem_addnode(ret,size));
-	return(ret);
-	}
-	else
-	{
-	fprintf(stderr, "FATAL ERROR : Out of memory, sorry.\n");
-	exit(1);
-	}
+    void *ret;
+    ret = realloc(ptr, size);
+    if (ret) {
+        DEBUG_M(mem_freenode(ptr));
+        DEBUG_M(mem_addnode(ret, size));
+        return (ret);
+    } else {
+        fprintf(stderr, "FATAL ERROR : Out of memory, sorry.\n");
+        exit(1);
+    }
 }
 
 void *calloc_2(size_t nmemb, size_t size)
 {
-void *ret;
-ret=calloc(nmemb, size);
-if(ret)
-	{
-	DEBUG_M(mem_addnode(ret, nmemb*size));
-	return(ret);
-	}
-	else
-	{
-	fprintf(stderr, "FATAL ERROR: Out of memory, sorry.\n");
-	exit(1);
-	}
+    void *ret;
+    ret = calloc(nmemb, size);
+    if (ret) {
+        DEBUG_M(mem_addnode(ret, nmemb * size));
+        return (ret);
+    } else {
+        fprintf(stderr, "FATAL ERROR: Out of memory, sorry.\n");
+        exit(1);
+    }
 }
 
 void free_2(void *ptr)
 {
-if(ptr)
-	{
-	DEBUG_M(mem_freenode(ptr));
-	free(ptr);
-	}
-	else
-	{
-	fprintf(stderr, "WARNING: Attempt to free NULL pointer caught.\n");
-	}
+    if (ptr) {
+        DEBUG_M(mem_freenode(ptr));
+        free(ptr);
+    } else {
+        fprintf(stderr, "WARNING: Attempt to free NULL pointer caught.\n");
+    }
 }
-
 
 /*
  * atoi 64-bit version..
@@ -156,8 +136,8 @@ if(ptr)
  */
 TimeType atoi_64(char *str)
 {
-TimeType val=0;
-unsigned char ch, nflag=0;
+    TimeType val = 0;
+    unsigned char ch, nflag = 0;
 
 #if 0
 switch(*str)
@@ -184,23 +164,14 @@ switch(*str)
 	}
 #endif
 
-while((ch=*(str++)))
-	{
-	if((ch>='0')&&(ch<='9'))
-		{
-		val=(val*10+(ch&15));
-		}
-	else
-	if((ch=='-')&&(val==0)&&(!nflag))
-		{
-		nflag=1;
-		}
-	else
-	if(val)
-		{
-		break;
-		}
-	}
-return(nflag?(-val):val);
+    while ((ch = *(str++))) {
+        if ((ch >= '0') && (ch <= '9')) {
+            val = (val * 10 + (ch & 15));
+        } else if ((ch == '-') && (val == 0) && (!nflag)) {
+            nflag = 1;
+        } else if (val) {
+            break;
+        }
+    }
+    return (nflag ? (-val) : val);
 }
-
