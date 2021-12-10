@@ -23,6 +23,7 @@ vcd2lxt2
 vcd2vzt
 vzt2vcd
 vztminer
+test
 *.fst
 *.vcd
 .vscode
