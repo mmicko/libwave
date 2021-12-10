@@ -9,6 +9,7 @@ struct FstVar
     std::string name;
     bool is_alias;
     std::string scope;
+    std::vector<FstVar> aliases;
 };
 
 class FstData
@@ -72,13 +73,16 @@ void FstData::extractVarNames()
             var.is_alias = h->u.var.is_alias;
             var.name = remove_spaces(h->u.var.name);
             var.scope = scopes.back();
-            handle_to_var[h->u.var.handle] = var;
+            if (!var.is_alias)
+                handle_to_var[h->u.var.handle] = var;
+            else
+                handle_to_var[h->u.var.handle].aliases.push_back(var);
             break;
         }
         }
     }
     for (auto &val : handle_to_var) {
-        printf("var : %s.%s\n", val.second.scope.c_str(), val.second.name.c_str());
+        printf("var : %s.%s %d\n", val.second.scope.c_str(), val.second.name.c_str(), (int)val.second.aliases.size());
     }
 }
 
