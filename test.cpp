@@ -22,11 +22,14 @@ class FstData
     uint64_t getStartTime();
     uint64_t getEndTime();
 
-    void reconstruct_callback(uint64_t pnt_time, fstHandle pnt_facidx, const unsigned char *pnt_value, uint32_t plen);
     std::vector<FstVar>& getVars() { return vars; };
 
+    void reconstruct_callback(uint64_t pnt_time, fstHandle pnt_facidx, const unsigned char *pnt_value, uint32_t plen);
     void reconstruct(std::vector<fstHandle> &signal);
     void reconstuctAll();
+
+    void reconstruct_callback_attimes(uint64_t pnt_time, fstHandle pnt_facidx, const unsigned char *pnt_value, uint32_t plen);
+    void reconstructAtTimes(std::vector<fstHandle> &signal,std::vector<uint64_t> time);
 
     std::string valueAt(fstHandle signal, uint64_t time);
     std::vector<uint64_t> edges(fstHandle signal, bool positive, bool negative);
@@ -41,6 +44,9 @@ class FstData
     std::map<fstHandle, std::vector<std::pair<uint64_t, std::string>>> handle_to_data;
     std::map<fstHandle, std::map<uint64_t, size_t>> time_to_index;
     std::map<fstHandle, std::map<size_t, uint64_t>> index_to_time;
+    std::vector<uint64_t> sample_times;
+    size_t sample_times_ndx;
+    std::map<fstHandle, std::string> current;
 };
 
 FstData::FstData(std::string filename) : ctx(nullptr)
@@ -114,7 +120,6 @@ static void reconstruct_clb(void *user_data, uint64_t pnt_time, fstHandle pnt_fa
 
 void FstData::reconstruct_callback(uint64_t pnt_time, fstHandle pnt_facidx, const unsigned char *pnt_value, uint32_t plen)
 {
-    FstVar var = handle_to_var[pnt_facidx];
     handle_to_data[pnt_facidx].push_back(std::make_pair(pnt_time, std::string((const char *)pnt_value)));
     size_t index = handle_to_data[pnt_facidx].size() - 1;
     time_to_index[pnt_facidx][pnt_time] = index;
@@ -124,6 +129,8 @@ void FstData::reconstruct_callback(uint64_t pnt_time, fstHandle pnt_facidx, cons
 void FstData::reconstruct(std::vector<fstHandle> &signal)
 {
     handle_to_data.clear();
+    time_to_index.clear();
+    index_to_time.clear();
     fstReaderClrFacProcessMaskAll(ctx);
     for(const auto sig : signal)
         fstReaderSetFacProcessMask(ctx,sig);
@@ -133,8 +140,66 @@ void FstData::reconstruct(std::vector<fstHandle> &signal)
 void FstData::reconstuctAll()
 {
     handle_to_data.clear();
+    time_to_index.clear();
+    index_to_time.clear();
     fstReaderSetFacProcessMaskAll(ctx);
     fstReaderIterBlocks2(ctx, reconstruct_clb, reconstruct_clb_varlen, this, nullptr);
+}
+
+static void reconstruct_clb_varlen_attimes(void *user_data, uint64_t pnt_time, fstHandle pnt_facidx, const unsigned char *pnt_value, uint32_t plen)
+{
+    FstData *ptr = (FstData*)user_data;
+    ptr->reconstruct_callback_attimes(pnt_time, pnt_facidx, pnt_value, plen);
+}
+
+static void reconstruct_clb_attimes(void *user_data, uint64_t pnt_time, fstHandle pnt_facidx, const unsigned char *pnt_value)
+{
+    FstData *ptr = (FstData*)user_data;
+    uint32_t plen = (pnt_value) ?  strlen((const char *)pnt_value) : 0;
+    ptr->reconstruct_callback_attimes(pnt_time, pnt_facidx, pnt_value, plen);
+}
+
+void FstData::reconstruct_callback_attimes(uint64_t pnt_time, fstHandle pnt_facidx, const unsigned char *pnt_value, uint32_t plen)
+{
+    if (sample_times_ndx > sample_times.size()) return;
+    uint64_t time = sample_times[sample_times_ndx];
+    // if we are past the timestamp
+    if (pnt_time > time) {
+        for (auto const& c : current)
+        {
+            handle_to_data[c.first].push_back(std::make_pair(time,c.second));
+            size_t index = handle_to_data[c.first].size() - 1;
+            time_to_index[c.first][time] = index;
+            index_to_time[c.first][index] = time;
+        }
+        sample_times_ndx++;
+    }
+    // always update current
+    current[pnt_facidx] =  std::string((const char *)pnt_value);
+}
+
+void FstData::reconstructAtTimes(std::vector<fstHandle> &signal, std::vector<uint64_t> time)
+{
+    handle_to_data.clear();
+    time_to_index.clear();
+    index_to_time.clear();
+    current.clear();
+    sample_times_ndx = 0;
+    sample_times = time;
+    fstReaderClrFacProcessMaskAll(ctx);
+    for(const auto sig : signal)
+        fstReaderSetFacProcessMask(ctx,sig);
+    fstReaderIterBlocks2(ctx, reconstruct_clb_attimes, reconstruct_clb_varlen_attimes, this, nullptr);
+
+    if (time_to_index[signal.back()].count(time.back())==0) {
+        for (auto const& c : current)
+        {
+            handle_to_data[c.first].push_back(std::make_pair(time.back(),c.second));
+            size_t index = handle_to_data[c.first].size() - 1;
+            time_to_index[c.first][time.back()] = index;
+            index_to_time[c.first][index] = time.back();
+        }
+    }
 }
 
 std::string FstData::valueAt(fstHandle signal, uint64_t time)
@@ -195,16 +260,16 @@ int main(int argc, char **argv)
     for (auto &val : f.getVars()) {
         printf("%zu var : %s.%s %d  %d\n", val.id, val.scope.c_str(), val.name.c_str(), (int)val.is_alias, val.width);
     }
-    /*std::vector<fstHandle> signal;
-    signal.push_back(9);
-    signal.push_back(4);
-    signal.push_back(5);
-    f.reconstruct(signal);*/
     f.reconstuctAll();
-    printf("%s \n",f.valueAt(9,605000).c_str());
-    auto v = f.edges(3,true, false);
+    //printf("%s \n",f.valueAt(9,605000).c_str());
+    auto v = f.edges(3,true, true);
     /*for(auto &val : v) {
         printf("%zu\n",val);
     }*/
-    f.recalc_time_offsets(9,v);
+    std::vector<fstHandle> signal;
+    signal.push_back(9);
+    signal.push_back(4);
+    signal.push_back(5);
+    signal.push_back(3); // clock must be in list
+    f.reconstructAtTimes(signal,v);
 }
