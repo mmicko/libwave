@@ -30,6 +30,7 @@ class FstData
 
     std::string valueAt(fstHandle signal, uint64_t time);
     std::vector<uint64_t> edges(fstHandle signal, bool positive, bool negative);
+    void recalc_time_offsets(fstHandle signal, std::vector<uint64_t> time);
   private:
     void extractVarNames();
 
@@ -171,6 +172,21 @@ std::vector<uint64_t> FstData::edges(fstHandle signal, bool positive, bool negat
     return retVal;
 }
 
+void FstData::recalc_time_offsets(fstHandle signal, std::vector<uint64_t> time)
+{
+    size_t index = 0;
+    auto &data = handle_to_data[signal];
+    for(auto curr : time) {
+        for(size_t i = index; i< data.size(); i++) {
+            uint64_t t = index_to_time[signal][i];
+            if (t > curr) 
+                break;
+            index = i;
+        }
+        time_to_index[signal][curr] = index;
+    }
+}
+
 int main(int argc, char **argv)
 {
 
@@ -187,7 +203,8 @@ int main(int argc, char **argv)
     f.reconstuctAll();
     printf("%s \n",f.valueAt(9,605000).c_str());
     auto v = f.edges(3,true, false);
-    for(auto &val : v) {
+    /*for(auto &val : v) {
         printf("%zu\n",val);
-    }
+    }*/
+    f.recalc_time_offsets(9,v);
 }
