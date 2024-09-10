@@ -35,9 +35,6 @@ target_link_libraries(lxt2miner z)
 
 add_executable(evcd2vcd evcd2vcd.c ./jrb/jrb.h ./jrb/jrb.c)
 
-add_executable(test test.cpp ./fst/lz4.c ./fst/lz4.h ./fst/fastlz.c ./fst/fastlz.h ./fst/fstapi.c ./fst/fstapi.h)
-target_link_libraries(test z)
-
 file(GLOB_RECURSE CLANGFORMAT_FILES *.cpp *.h *.c)
 
 add_custom_target(
@@ -47,3 +44,5 @@ add_custom_target(
     -i
     ${CLANGFORMAT_FILES}
 )
+
+install(TARGETS vcd2fst RUNTIME DESTINATION bin)
